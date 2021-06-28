@@ -1,5 +1,10 @@
+import { query as q } from "faunadb";
+
 import NextAuth from "next-auth";
+import { signIn } from "next-auth/client";
 import Providers from "next-auth/providers";
+
+import { fauna } from "../../../services/fauna";
 
 export default NextAuth({
   // Configure one or more authentication providers
@@ -10,4 +15,30 @@ export default NextAuth({
       scope: "read:user",
     }),
   ],
+  callbacks: {
+    async signIn(user, account, profile) {
+      const { email } = user;
+
+      try {
+        await fauna.query(
+          q.If(
+            q.Not(
+              q.Exists(
+                // Verificando se existe o usuário com o email enviado
+                q.Match(q.Index("user_by_email"), q.Casefold(user.email))
+              )
+            ),
+            // Caso não exista, vai criar um novo usário com esse email
+            q.Create(q.Collection("users"), { data: { email } }),
+            // Caso exista, vai retornar os dados desse usuário com esse email enviado
+            q.Get(q.Match(q.Index("user_by_email"), q.Casefold(user.email)))
+          )
+        );
+
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  },
 });
