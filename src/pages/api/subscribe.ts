@@ -9,12 +9,13 @@ type User = {
     id: string;
   };
   data: {
-    stripe_costumer_id: string;
+    stripe_customer_id: string;
   };
 };
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "POST") {
+    // Envia o req pois o Token está no header da requisição, logo, ao chamar getSession, retorna a sessão do usuário
     const session = await getSession({ req });
 
     // Procurando o usuário no banco para utilizar ele como ref no Update
@@ -22,7 +23,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       q.Get(q.Match(q.Index("user_by_email"), q.Casefold(session.user.email)))
     );
 
-    let customerId = user.data.stripe_costumer_id;
+    // Recebe o stripe customer id para ver se o usuário que está cadastrado no fauna possui cadastro no stripe
+    let customerId = user.data.stripe_customer_id;
 
     if (!customerId) {
       // Criando um customer no stripe
@@ -34,7 +36,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       await fauna.query(
         q.Update(q.Ref(q.Collection("users"), user.ref.id), {
           data: {
-            stripe_costumer_id: stripeCustomer.id,
+            stripe_customer_id: stripeCustomer.id,
           },
         })
       );

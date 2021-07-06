@@ -9,6 +9,7 @@ interface SubscribeButtonProps {
 
 export function SubscribeButton({ priceId }: SubscribeButtonProps) {
   const [session] = useSession();
+  console.log(session);
 
   async function handleSubscribe() {
     // Caso o usuário não esteja logado, ele vai redirecionar para fazer o login
